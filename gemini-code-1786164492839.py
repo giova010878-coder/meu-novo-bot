@@ -4,6 +4,9 @@ import sys
 import subprocess
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # ==========================================
 # 👻 SERVIDOR FANTASMA PARA O RENDER (PORTA WEB)
@@ -21,21 +24,6 @@ def iniciar_servidor_web():
 
 threading.Thread(target=iniciar_servidor_web, daemon=True).start()
 
-# ==========================================
-# 📦 SISTEMA DE AUTO-INSTALAÇÃO DE MÓDULOS
-# ==========================================
-def instalar_modulo(package, pip_name=None):
-    if pip_name is None: pip_name = package
-    try:
-        __import__(package)
-    except ImportError:
-        print(f"📦 Instalando '{pip_name}' automaticamente...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", pip_name])
-
-instalar_modulo("telegram", "python-telegram-bot")
-instalar_modulo("aiohttp")
-instalar_modulo("nest_asyncio")
-
 import asyncio
 import re
 import time
@@ -50,35 +38,30 @@ from telegram.ext import (
 )
 
 # ==========================================
-# 🛡️ CONFIGURAÇÃO DO BOT AUDITOR DE COMBOS
+# 🛡️ CONFIGURAÇÕES E CREDENCIAIS
 # ==========================================
-TOKEN = "8716721711:AAEm6v-R3QB1rHCJ11QQur_MrcVjTwtIwKw" 
+TOKEN = os.getenv("TELEGRAM_TOKEN")
+if not TOKEN:
+    sys.exit(1)
 
-# 🚀 TODOS OS SEUS COMBOS ATUALIZADOS CADASTRADOS
+# Substitua ou ajuste os links abaixo conforme os nomes dos arquivos que você subiu no seu repositório novo do GitHub
 LINKS_COMBOS_GITHUB = {
-    "FENIX V4 ULTRA": "https://raw.githubusercontent.com/giova010878-coder/bot-giovani/refs/heads/main/FENIX%20V4%20ULTRA.txt",
-    "XAKKAL V²": "https://raw.githubusercontent.com/giova010878-coder/bot-giovani/refs/heads/main/XAKKAL%20V%C2%B2.txt",
-    "XAKKAL V³": "https://raw.githubusercontent.com/giova010878-coder/bot-giovani/refs/heads/main/XAKKAL%20V%C2%B3.txt",
-    "COMBO.MISTURADO.TOP": "https://raw.githubusercontent.com/giova010878-coder/bot-giovani/refs/heads/main/COMBO.MISTURADO.TOP.txt",
-    "DERRUBA DNS": "https://raw.githubusercontent.com/giova010878-coder/bot-giovani/refs/heads/main/DERRUBA%20DNS.txt",
-    "SISTEMAS TV": "https://raw.githubusercontent.com/giova010878-coder/bot-giovani/refs/heads/main/SISTEMAS%20TV.txt",
-    "FENIX ULTRA V1": "https://raw.githubusercontent.com/giova010878-coder/bot-giovani/refs/heads/main/FENIX%20ULTRA%20V1.txt",
-    "COMBO-ESTRAGO": "https://raw.githubusercontent.com/giova010878-coder/bot-giovani/main/COMBO-ESTRAGO.txt",
-    "Combo Mundo IPTV": "https://raw.githubusercontent.com/giova010878-coder/bot-giovani/main/Combo_Mundo%20IPTV.txt",
-    "HIDAN CDN 5 2026": "https://raw.githubusercontent.com/giova010878-coder/bot-giovani/main/HIDAN%20CDN%205%202026.txt",
-    "Combo 💯topˢ²": "https://raw.githubusercontent.com/giova010878-coder/bot-giovani/main/combo%F0%9F%92%AFtop%E1%B5%9B%C2%B2.txt",
-    "COMBOATACK¹⁵": "https://raw.githubusercontent.com/giova010878-coder/bot-giovani/main/%F0%9D%97%96%E1%B4%8F%E1%B4%8D%CA%99%E1%B4%8F%F0%9D%97%94%E1%B4%9B%E1%B4%9B%E1%B4%80%E1%B4%84%E1%B4%8B%E1%B5%A5%C2%B9%E2%81%B5.txt",
+    "FENIX V4 ULTRA": "https://raw.githubusercontent.com/giova010878-coder/SEU_NOVO_REPO/refs/heads/main/combos/fenix_v4.txt",
+    "XAKKAL V²": "https://raw.githubusercontent.com/giova010878-coder/SEU_NOVO_REPO/refs/heads/main/combos/xakkal_v2.txt",
+    "DERRUBA DNS": "https://raw.githubusercontent.com/giova010878-coder/SEU_NOVO_REPO/refs/heads/main/combos/derruba_dns.txt",
 }
 
 HEADERS = {"User-Agent": "VLC", "X-User-Agent": "Model: MAG254; Link: Ethernet"}
-ADMIN_IDS = [7679881390] # Seu ID do Telegram
 
-# Dicionários de controle global
+# Lê os administradores do .env ou usa o padrão
+admin_env = os.getenv("ADMIN_IDS", "7679881390")
+ADMIN_IDS = [int(x.strip()) for x in admin_env.split(",")]
+
 scans_ativos = {}
 dados_temporarios = {}
 
 # ==========================================
-# 🛰️ PUXADOR DE COMBOS ESPECÍFICO DO GITHUB
+# 🛰️ PUXADOR DE COMBOS DO GITHUB
 # ==========================================
 async def puxar_combo_especifico(link):
     combos_totais = []
@@ -284,7 +267,7 @@ async def processar_auditoria(dns_alvo, nome_combo, link_combo, chat_id, context
         await context.bot.send_message(chat_id, layout, parse_mode="Markdown")
 
 # ==========================================
-# 🎛️ GERENCIAMENTO DE BOTÕES E SELEÇÃO
+# 🎛️ GERENCIAMENTO DE BOTÕES E COMANDOS
 # ==========================================
 async def botoes_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -335,9 +318,6 @@ async def comando_parar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("⚠️ Não há nenhuma auditoria rodando no momento.")
 
-# ==========================================
-# 📥 RECEPÇÃO DE MENSAGENS (DISPARA O MENU)
-# ==========================================
 async def receber_texto(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = update.message.text
     user_id = update.message.from_user.id
@@ -356,7 +336,7 @@ async def receber_texto(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         teclado_combos = []
         for nome in LINKS_COMBOS_GITHUB.keys():
-            teclado_combos.append([InlineKeyboardButton(f"📂 Usar: {nome}", callback_data=f"combo_{nome}")])
+            teclado_combos.append([InlineKeyboardButton(f"📂 Usar: {nome}", callback_data=f"combo_{nome})")])
 
         reply_markup = InlineKeyboardMarkup(teclado_combos)
         await update.message.reply_text(
@@ -373,7 +353,7 @@ def main():
     app.add_handler(CallbackQueryHandler(botoes_callback))
     app.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), receber_texto))
     
-    print("🎯 GIOVANI COMBO AUDITOR ONLINE (TODOS OS COMBOS INTEGRADOS)")
+    print("🎯 GIOVANI COMBO AUDITOR ONLINE")
     app.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
